@@ -12550,18 +12550,19 @@ module.exports = git;
 /***/ 3006:
 /***/ ((module, __unused_webpack_exports, __nccwpck_require__) => {
 
-const { graphql } = __nccwpck_require__(8467);
-const OctokitResponseModel = __nccwpck_require__(5857);
-let octokit = function () {
-    let getHeader = function (AUTH_KEY) {
-       return  {
-            headers: {
-                authorization: `token ${AUTH_KEY}`,
-            },
-        }
+const { graphql } = __nccwpck_require__(8467)
+const OctokitResponseModel = __nccwpck_require__(5857)
+let octokit = (function () {
+  let getHeader = function (AUTH_KEY) {
+    return {
+      headers: {
+        authorization: `token ${AUTH_KEY}`,
+      },
     }
-    let getQuery = function (locations, numberOfUsers, cursor) {
-        return { query: `query {
+  }
+  let getQuery = function (locations, numberOfUsers, cursor) {
+    return {
+      query: `query {
               search(type: USER, query:"${locations} sort:followers-desc", first:${numberOfUsers}, after:${cursor}) {
                 edges {
                   node {
@@ -12590,31 +12591,32 @@ let octokit = function () {
                     hasNextPage
                   }
               }
-            }`};
+            }`,
     }
-    let setCursor = function (cursor) {
-        if(cursor === null){
-            return cursor
-        } else {
-            return `"${cursor}"`;
-        }
+  }
+  let setCursor = function (cursor) {
+    if (cursor === null) {
+      return cursor
+    } else {
+      return `"${cursor}"`
     }
-    let request = async function (AUTH_KEY, locations, cursor) {
-        try{
-            const graphqlWithAuth = graphql.defaults(getHeader(AUTH_KEY));
-            const response = await graphqlWithAuth(getQuery(locations, 10, setCursor(cursor)));
-            return new OctokitResponseModel(true, response);
-        } catch (error) {
-            console.log(error)
-            return new OctokitResponseModel(false)
-        }
+  }
+  let request = async function (AUTH_KEY, locations, cursor) {
+    try {
+      const graphqlWithAuth = graphql.defaults(getHeader(AUTH_KEY))
+      const response = await graphqlWithAuth(getQuery(locations, 5, setCursor(cursor)))
+      return new OctokitResponseModel(true, response)
+    } catch (error) {
+      console.log(error)
+      return new OctokitResponseModel(false)
+    }
+  }
+  return {
+    request: request,
+  }
+})()
+module.exports = octokit
 
-    }
-    return {
-        request: request
-    };
-}();
-module.exports = octokit;
 
 /***/ }),
 
@@ -13773,100 +13775,144 @@ module.exports = requestOctokit;
  * (c) 2021 gayanvoice
  * Released under the MIT License
  */
-const pullGit = __nccwpck_require__(8591);
-const commitGit = __nccwpck_require__(6763);
-const pushGit = __nccwpck_require__(6278);
-const configFile = __nccwpck_require__(6264);
-const outputCheckpoint = __nccwpck_require__(9911);
-const outputCache = __nccwpck_require__(9862);
-const outputMarkdown = __nccwpck_require__(8167);
-const outputHtml = __nccwpck_require__(9316);
-const createHtmlFile = __nccwpck_require__(8900);
-const createRankingJsonFile = __nccwpck_require__(7818);
-const createIndexPage = __nccwpck_require__(2833);
-const createPublicContributionsPage = __nccwpck_require__(4486);
-const createTotalContributionsPage = __nccwpck_require__(5389);
-const createFollowersPage = __nccwpck_require__(5815);
-const requestOctokit = __nccwpck_require__(639);
-const formatMarkdown = __nccwpck_require__(3164);
-const OutputMarkdownModel = __nccwpck_require__(4343);
-let Index = function () {
-    // const AUTH_KEY = "";
-    // const GITHUB_USERNAME_AND_REPOSITORY = 'gayanvoice/top-github-users';
-    const AUTH_KEY = process.env.CUSTOM_TOKEN;
-    const GITHUB_USERNAME_AND_REPOSITORY = process.env.GITHUB_REPOSITORY;
-    const MAXIMUM_ERROR_ITERATIONS = 4;
-    let getCheckpoint = async function (locationsArray, country, checkpoint) {
-        let indexOfTheCountry = locationsArray.findIndex(location => location.country === country);
-        if(indexOfTheCountry === checkpoint){
-            console.log("checkpoint set", country)
-            return true;
+const pullGit = __nccwpck_require__(8591)
+const commitGit = __nccwpck_require__(6763)
+const pushGit = __nccwpck_require__(6278)
+const configFile = __nccwpck_require__(6264)
+const outputCheckpoint = __nccwpck_require__(9911)
+const outputCache = __nccwpck_require__(9862)
+const outputMarkdown = __nccwpck_require__(8167)
+const outputHtml = __nccwpck_require__(9316)
+const createHtmlFile = __nccwpck_require__(8900)
+const createRankingJsonFile = __nccwpck_require__(7818)
+const createIndexPage = __nccwpck_require__(2833)
+const createPublicContributionsPage = __nccwpck_require__(4486)
+const createTotalContributionsPage = __nccwpck_require__(5389)
+const createFollowersPage = __nccwpck_require__(5815)
+const requestOctokit = __nccwpck_require__(639)
+const formatMarkdown = __nccwpck_require__(3164)
+const OutputMarkdownModel = __nccwpck_require__(4343)
+let Index = (function () {
+  // const AUTH_KEY = "";
+  // const GITHUB_USERNAME_AND_REPOSITORY = 'gayanvoice/top-github-users';
+  const AUTH_KEY = process.env.CUSTOM_TOKEN
+  const GITHUB_USERNAME_AND_REPOSITORY = process.env.GITHUB_REPOSITORY
+  const MAXIMUM_ERROR_ITERATIONS = 4
+  let getCheckpoint = async function (locationsArray, country, checkpoint) {
+    let indexOfTheCountry = locationsArray.findIndex((location) => location.country === country)
+    if (indexOfTheCountry === checkpoint) {
+      console.log('checkpoint set', country)
+      return true
+    } else {
+      console.log('checkpoint not set', country)
+      return false
+    }
+  }
+  let saveCache = async function (readConfigResponseModel, readCheckpointResponseModel) {
+    console.log(`########## SaveCache ##########`)
+    for await (const locationDataModel of readConfigResponseModel.locations) {
+      let isCheckpoint = await getCheckpoint(
+        readConfigResponseModel.locations,
+        locationDataModel.country,
+        readCheckpointResponseModel.checkpoint
+      )
+      if (isCheckpoint) {
+        let json = await requestOctokit.request(
+          AUTH_KEY,
+          MAXIMUM_ERROR_ITERATIONS,
+          locationDataModel.locations
+        )
+        let readCacheResponseModel = await outputCache.readCacheFile(locationDataModel.country)
+        if (readCacheResponseModel.status) {
+          if (readCacheResponseModel.users.length > json.length) {
+            console.log(
+              `octokit error cache:${readCacheResponseModel.users.length} octokit:${json.length}`
+            )
+          } else {
+            console.log(
+              `request success cache:${readCacheResponseModel.users.length} octokit:${json.length}`
+            )
+            await outputCache.saveCacheFile(locationDataModel.country, json)
+          }
         } else {
-            console.log("checkpoint not set", country)
-            return false;
+          console.log(`request success octokit:${json.length}`)
+          await outputCache.saveCacheFile(locationDataModel.country, json)
         }
+      }
     }
-    let saveCache = async function (readConfigResponseModel, readCheckpointResponseModel) {
-        console.log(`########## SaveCache ##########`)
-        for await(const locationDataModel of readConfigResponseModel.locations){
-            let isCheckpoint = await getCheckpoint(readConfigResponseModel.locations, locationDataModel.country, readCheckpointResponseModel.checkpoint);
-            if(isCheckpoint){
-                let json = await requestOctokit.request(AUTH_KEY, MAXIMUM_ERROR_ITERATIONS, locationDataModel.locations);
-                let readCacheResponseModel =  await outputCache.readCacheFile(locationDataModel.country);
-                if(readCacheResponseModel.status){
-                    if(readCacheResponseModel.users.length > json.length){
-                        console.log(`octokit error cache:${readCacheResponseModel.users.length} octokit:${json.length}`);
-                    } else {
-                        console.log(`request success cache:${readCacheResponseModel.users.length} octokit:${json.length}`);
-                        await outputCache.saveCacheFile(locationDataModel.country, json);
-                    }
-                } else {
-                    console.log(`request success octokit:${json.length}`);
-                    await outputCache.saveCacheFile(locationDataModel.country, json);
-                }
-            }
+  }
+  let saveMarkdown = async function (readConfigResponseModel, readCheckpointResponseModel) {
+    console.log(`########## SaveMarkDown ##########`)
+    for await (const locationDataModel of readConfigResponseModel.locations) {
+      let isCheckpoint = await getCheckpoint(
+        readConfigResponseModel.locations,
+        locationDataModel.country,
+        readCheckpointResponseModel.checkpoint
+      )
+      if (isCheckpoint) {
+        let readCacheResponseModel = await outputCache.readCacheFile(locationDataModel.country)
+        if (readCacheResponseModel.status) {
+          let outputMarkdownModel = new OutputMarkdownModel(
+            GITHUB_USERNAME_AND_REPOSITORY,
+            locationDataModel,
+            readCacheResponseModel,
+            readConfigResponseModel
+          )
+          await outputMarkdown.savePublicContributionsMarkdownFile(
+            locationDataModel.country,
+            createPublicContributionsPage.create(outputMarkdownModel)
+          )
+          await outputMarkdown.saveTotalContributionsMarkdownFile(
+            locationDataModel.country,
+            createTotalContributionsPage.create(outputMarkdownModel)
+          )
+          await outputMarkdown.saveFollowersMarkdownFile(
+            locationDataModel.country,
+            createFollowersPage.create(outputMarkdownModel)
+          )
         }
+      }
+      await outputCheckpoint.saveCheckpointFile(
+        readConfigResponseModel.locations,
+        locationDataModel.country,
+        readCheckpointResponseModel.checkpoint
+      )
     }
-    let saveMarkdown = async function (readConfigResponseModel, readCheckpointResponseModel) {
-        console.log(`########## SaveMarkDown ##########`)
-        for await(const locationDataModel of readConfigResponseModel.locations){
-            let isCheckpoint = await getCheckpoint(readConfigResponseModel.locations, locationDataModel.country, readCheckpointResponseModel.checkpoint)
-            if(isCheckpoint){
-                let readCacheResponseModel =  await outputCache.readCacheFile(locationDataModel.country);
-                if(readCacheResponseModel.status) {
-                    let outputMarkdownModel =  new OutputMarkdownModel(GITHUB_USERNAME_AND_REPOSITORY, locationDataModel, readCacheResponseModel, readConfigResponseModel);
-                    await outputMarkdown.savePublicContributionsMarkdownFile(locationDataModel.country, createPublicContributionsPage.create(outputMarkdownModel));
-                    await outputMarkdown.saveTotalContributionsMarkdownFile(locationDataModel.country, createTotalContributionsPage.create(outputMarkdownModel));
-                    await outputMarkdown.saveFollowersMarkdownFile(locationDataModel.country, createFollowersPage.create(outputMarkdownModel));
-                }
-            }
-            await outputCheckpoint.saveCheckpointFile(readConfigResponseModel.locations, locationDataModel.country, readCheckpointResponseModel.checkpoint)
-        }
-        if(!readConfigResponseModel.devMode) await outputMarkdown.saveIndexMarkdownFile(createIndexPage.create(GITHUB_USERNAME_AND_REPOSITORY, readConfigResponseModel));
+    if (!readConfigResponseModel.devMode)
+      await outputMarkdown.saveIndexMarkdownFile(
+        createIndexPage.create(GITHUB_USERNAME_AND_REPOSITORY, readConfigResponseModel)
+      )
+  }
+  let saveHtml = async function (readConfigResponseModel) {
+    console.log(`########## SaveHtml ##########`)
+    await outputHtml.saveRankingJsonFile(
+      await createRankingJsonFile.create(readConfigResponseModel)
+    )
+    await outputHtml.saveHtmlFile(createHtmlFile.create())
+  }
+  let main = async function () {
+    let readConfigResponseModel = await configFile.readConfigFile()
+    let readCheckpointResponseModel = await outputCheckpoint.readCheckpointFile()
+    if (readConfigResponseModel.status && readCheckpointResponseModel.status) {
+      if (!readConfigResponseModel.devMode) await pullGit.pull()
+      let checkpointCountry =
+        readConfigResponseModel.locations[readCheckpointResponseModel.checkpoint].country
+      await saveCache(readConfigResponseModel, readCheckpointResponseModel)
+      await saveMarkdown(readConfigResponseModel, readCheckpointResponseModel)
+      await saveHtml(readConfigResponseModel)
+      if (!readConfigResponseModel.devMode)
+        await commitGit.commit(
+          `Update ${formatMarkdown.capitalizeTheFirstLetterOfEachWord(checkpointCountry)}`
+        )
+      if (!readConfigResponseModel.devMode) await pushGit.push()
     }
-    let saveHtml = async function (readConfigResponseModel) {
-        console.log(`########## SaveHtml ##########`);
-        await outputHtml.saveRankingJsonFile(await createRankingJsonFile.create(readConfigResponseModel));
-        await outputHtml.saveHtmlFile(createHtmlFile.create());
-    }
-    let main = async function () {
-        let readConfigResponseModel = await configFile.readConfigFile();
-        let readCheckpointResponseModel = await outputCheckpoint.readCheckpointFile();
-        if(readConfigResponseModel.status && readCheckpointResponseModel.status){
-            if(!readConfigResponseModel.devMode) await pullGit.pull();
-            let checkpointCountry = readConfigResponseModel.locations[readCheckpointResponseModel.checkpoint].country
-            await saveCache(readConfigResponseModel, readCheckpointResponseModel);
-            await saveMarkdown(readConfigResponseModel, readCheckpointResponseModel)
-            await saveHtml(readConfigResponseModel)
-            if(!readConfigResponseModel.devMode) await commitGit.commit(`Update ${formatMarkdown.capitalizeTheFirstLetterOfEachWord(checkpointCountry)}`);
-            if(!readConfigResponseModel.devMode) await pushGit.push();
-        }
-    }
-    return {
-        main: main,
-    };
-}();
-Index.main().then(() => { });
+  }
+  return {
+    main: main,
+  }
+})()
+Index.main().then(() => {})
+
 
 /***/ }),
 
