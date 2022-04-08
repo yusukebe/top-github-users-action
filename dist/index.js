@@ -13509,7 +13509,7 @@ let createIndexPage = (function () {
     markdown = markdown + `### ただし日本に限る\n\n`
     markdown =
       markdown +
-      `<a href="https://github.com/gayanvoice/top-github-users">Top GitHub Users By Country</a>がおもしろいのですが、いかんせん日本（に限らないけど）の更新頻度が低くて、情報が古いので「日本に限った」ものを作りました。本家で使っている<a href="https://github.com/yusukebe/top-github-users-action">GitHub ActionsをForkしたもの</a>を使ってページを生成しています。もし気に入ったら<a href="https://github.com/gayanvoice/top-github-users">本家のレポジトリ</a>に ⭐ するのをお忘れなく。\n\n`
+      `<a href="https://github.com/gayanvoice/top-github-users">Top GitHub Users By Country</a>がおもしろいのですが、いかんせん日本（に限らないけど）の更新頻度が低くて、情報が古いので、更新頻度を高めにした「日本に限った」ものを作りました。本家で使っている<a href="https://github.com/yusukebe/top-github-users-action">GitHub ActionsをForkしたもの</a>を使ってページを生成しています。もし気に入ったら<a href="https://github.com/gayanvoice/top-github-users">本家のレポジトリ</a>に ⭐ するのをお忘れなく。\n\n`
 
     markdown = markdown + `<a href="https://gayanvoice.github.io/top-github-users/index.html">\n`
     markdown =
